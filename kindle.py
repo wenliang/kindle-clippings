@@ -4,6 +4,7 @@
 import collections
 import msgpack
 import os
+import re
 
 BOUNDARY = u"==========\r\n"
 DATA_FILE = u"clips.msgpack"
@@ -25,12 +26,20 @@ def get_clip(section):
         return
 
     clip['book'] = lines[0]
-    position = lines[1][26:lines[1].rfind('-')]
+    positions = re.search('#(\d+)', lines[1])
+    position = positions.group(1)
     if not position:
         return
 
     clip['position'] = int(position)
-    clip['content'] = lines[2]
+
+    if lines[1].find(unicode('的笔记', 'utf-8')) > 0:
+        prefix = u'评论: '
+    elif lines[1].find(unicode('的标注', 'utf-8')) > 0:
+        prefix = u'摘录: '
+    else:
+        prefix = u''
+    clip['content'] = prefix + lines[2]
 
     return clip
 
@@ -42,11 +51,11 @@ def export_txt(clips):
     for book in clips:
         lines = []
         for pos in sorted(clips[book]):
-            lines.append(clips[book][pos].encode('utf-8'))
+            lines.append('\n------\nloc (%05d), %s' % (pos, clips[book][pos].encode('utf-8')))
 
-        filename = os.path.join(OUTPUT_DIR, u"%s.txt" % book)
+        filename = os.path.join(OUTPUT_DIR, u"%s.txt" % (book.replace(' ', '_')))
         with open(filename, 'w') as f:
-            f.write("\n\n--\n\n".join(lines))
+            f.write("\n".join(lines))
 
 
 def load_clips():
