@@ -26,13 +26,20 @@ def get_clip(section):
         return
 
     clip['book'] = lines[0]
-    positions = re.search('#(\d+)', lines[1])
-    position = positions.group(1)
+    # mobi highlight give '#123' or '#123-127' # numb of position
+    # pdf  highlight give '123-123' that is page number
+    # probably same number but not sure.
+    #positions = re.search('#(\d+)', lines[1])
+    positions = re.search('(?:#(\d+)(?:-(\d+))?)|(?:(\d+)-(\d+))', lines[1])
+    # print lines[1]
+    # print positions.groups()
+    position = positions.group(1) if positions.group(1) else positions.group(3)
     if not position:
         return
 
     clip['position'] = int(position)
 
+    # 只保留笔记和标注, 书签算了
     if lines[1].find(unicode('的笔记', 'utf-8')) > 0:
         prefix = u'评论: '
     elif lines[1].find(unicode('的标注', 'utf-8')) > 0:
@@ -54,6 +61,7 @@ def export_txt(clips):
             lines.append('\n------\nloc (%05d), %s' % (pos, clips[book][pos].encode('utf-8')))
 
         filename = os.path.join(OUTPUT_DIR, u"%s.txt" % (book.replace(' ', '_')))
+        print filename
         with open(filename, 'w') as f:
             f.write("\n".join(lines))
 
